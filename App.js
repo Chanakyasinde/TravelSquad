@@ -1,10 +1,13 @@
 import { NavigationContainer } from '@react-navigation/native';
-import StackNavigator from './navigation/StackNavigator';
+import AppNavigator from './navigation/StackNavigator'; 
+import { TripProvider } from './contexts/TripContext'; 
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <StackNavigator />
-    </NavigationContainer>
+    <TripProvider>
+      <NavigationContainer>
+        <AppNavigator />
+      </NavigationContainer>
+    </TripProvider>
   );
 }
