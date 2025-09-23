@@ -9,9 +9,12 @@ import Expenses from '../components/Expenses';
 import Chat from '../components/Chat';
 import Profile from '../components/Profile';
 
+// Import the new screens
+import CreateTripScreen from '../screens/CreateTripScreen';
+import TripDetailsScreen from '../screens/TripDetailsScreen';
+
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
-
 
 function TabNavigator() {
   return (
@@ -48,12 +51,22 @@ function TabNavigator() {
 
 export default function StackNavigator() {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Stack.Screen name="MainTabs" component={TabNavigator} />
+    <Stack.Navigator>
+      <Stack.Screen
+        name="MainTabs"
+        component={TabNavigator}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CreateTrip"
+        component={CreateTripScreen}
+        options={{ headerShown: true, title: 'Create Trip' }}
+      />
+      <Stack.Screen
+        name="TripDetails"
+        component={TripDetailsScreen}
+        options={{ headerShown: true, title: 'Trip Details' }}
+      />
     </Stack.Navigator>
   );
 }
