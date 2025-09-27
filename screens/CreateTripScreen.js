@@ -3,10 +3,9 @@ import { View, Text, TextInput, Button, StyleSheet, Alert, TouchableOpacity, Pla
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import dayjs from 'dayjs';
-import { TripContext } from '../contexts/TripContext'; // Import the context
+import { TripContext } from '../contexts/TripContext'; 
 
 export default function CreateTripScreen({ navigation }) {
-  // Get the addTrip function from the context
   const { addTrip } = useContext(TripContext);
 
   const [tripName, setTripName] = useState('');
@@ -52,10 +51,8 @@ export default function CreateTripScreen({ navigation }) {
       endDate: dayjs(endDate).format('MMM D, YYYY'),
     };
 
-    // Call the global addTrip function from the context
     addTrip(newTrip);
 
-    // Simply navigate back
     navigation.goBack();
   };
 
