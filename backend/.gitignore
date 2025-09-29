@@ -1,0 +1,9 @@
+# Node.js
+node_modules/
+.env
+logs/
+*.log
+
+# OS
+.DS_Store
+
