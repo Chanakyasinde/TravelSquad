@@ -1,13 +1,11 @@
-import { NavigationContainer } from '@react-navigation/native';
-import AppNavigator from './navigation/StackNavigator'; 
-import { TripProvider } from './contexts/TripContext'; 
+import React from 'react';
+import { TripProvider } from './contexts/TripContext';
+import RootNavigator from './navigation/RootNavigator';
 
 export default function App() {
   return (
     <TripProvider>
-      <NavigationContainer>
-        <AppNavigator />
-      </NavigationContainer>
+      <RootNavigator />
     </TripProvider>
   );
 }
