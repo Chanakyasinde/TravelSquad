@@ -4,18 +4,15 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-// Component & Screen Imports
 import MyTrips from '../components/MyTrips';
 import Chat from '../components/Chat';
 import Profile from '../components/Profile';
 import CreateTripScreen from '../screens/CreateTripScreen';
 import TripDetailsScreen from '../screens/TripDetailsScreen';
 
-// --- Itinerary Feature Imports ---
 import TripItineraryScreen from '../screens/TripItineraryScreen';
 import AddEventScreen from '../screens/AddEventScreen';
 
-// --- Expense Feature Imports ---
 import TripExpensesScreen from '../screens/TripExpensesScreen';
 import AddExpenseScreen from '../screens/AddExpenseScreen';
 
