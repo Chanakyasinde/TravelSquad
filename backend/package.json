@@ -1,23 +1,32 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "Backend API for TravelSquad project",
+  "description": "Backend chat server for TravelSquad project",
   "main": "index.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "server": "nodemon index.js"
   },
-  "keywords": [],
+  "keywords": [
+    "chat",
+    "socket.io",
+    "express",
+    "backend",
+    "travel-squad"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
     "express": "^5.1.0",
-    "dotenv": "^16.4.5",        
-    "cors": "^2.8.5"              
+    "mysql2": "^3.15.3",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
-    "nodemon": "^3.0.3"
+    "nodemon": "^3.1.10"
   }
 }
