@@ -2,18 +2,27 @@ import { initializeApp } from "firebase/app";
 import { initializeAuth, getReactNativePersistence } from "firebase/auth";
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
+import { 
+  FIREBASE_API_KEY, 
+  FIREBASE_AUTH_DOMAIN, 
+  FIREBASE_PROJECT_ID, 
+  FIREBASE_STORAGE_BUCKET, 
+  FIREBASE_MESSAGING_SENDER_ID, 
+  FIREBASE_APP_ID,
+  FIREBASE_MEASUREMENT_ID
+} from '@env';
+
 const firebaseConfig = {
-  apiKey: "AIzaSyAszreAM6M4ODx74PUwBS5QPt1_yUWjLtM",
-  authDomain: "travelsquad-9b42a.firebaseapp.com",
-  projectId: "travelsquad-9b42a",
-  storageBucket: "travelsquad-9b42a.firebasestorage.app",
-  messagingSenderId: "885587845501",
-  appId: "1:885587845501:web:2e18c354001ed9d46d6c14",
-  measurementId: "G-0ZBPBBYLDB"
+  apiKey: FIREBASE_API_KEY,
+  authDomain: FIREBASE_AUTH_DOMAIN,
+  projectId: FIREBASE_PROJECT_ID,
+  storageBucket: FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: FIREBASE_MESSAGING_SENDER_ID,
+  appId: FIREBASE_APP_ID,
+  measurementId: FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);
-
 export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(ReactNativeAsyncStorage)
 });

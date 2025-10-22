@@ -3,19 +3,30 @@ import { View, Text, TextInput, Button, FlatList, StyleSheet, KeyboardAvoidingVi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { io } from 'socket.io-client';
 import { auth } from '../firebaseConfig';
+import axios from 'axios'; 
 
 const SERVER_URL = 'http://10.254.201.116:3001';
 
 export default function TripChatScreen({ route }) {
-  const { trip } = route.params; 
+  const { trip } = route.params;
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const socketRef = useRef(null);
   const user = auth.currentUser;
 
   useEffect(() => {
-    socketRef.current = io(SERVER_URL);
+    const fetchMessageHistory = async () => {
+      try {
+        const response = await axios.get(`${SERVER_URL}/chat/${trip.id}`);
+        setMessages(response.data); 
+      } catch (err) {
+        console.error('Error fetching message history:', err);
+      }
+    };
+    
+    fetchMessageHistory(); 
 
+    socketRef.current = io(SERVER_URL);
     socketRef.current.emit('joinRoom', trip.id);
 
     socketRef.current.on('receiveMessage', (messageData) => {
@@ -25,19 +36,17 @@ export default function TripChatScreen({ route }) {
     return () => {
       socketRef.current.disconnect();
     };
-  }, [trip.id]); 
+  }, [trip.id]);
 
   const handleSend = () => {
     if (message.trim() === '') return;
-
     const messageData = {
-      roomId: trip.id, 
-      id: Math.random().toString(),
+      roomId: trip.id,
+      id: Math.random().toString(), 
       text: message,
       senderEmail: user?.email || 'Anonymous',
       createdAt: new Date(),
     };
-
     socketRef.current.emit('sendMessage', messageData);
     setMessage('');
   };
@@ -48,7 +57,7 @@ export default function TripChatScreen({ route }) {
       <View style={[styles.messageBubble, isMyMessage ? styles.myMessage : styles.otherMessage]}>
         {!isMyMessage && <Text style={styles.senderEmail}>{item.senderEmail}</Text>}
         <Text style={isMyMessage ? styles.myMessageText : styles.otherMessageText}>
-          {item.text}
+          {item.text || item.message_text}
         </Text>
       </View>
     );
@@ -59,12 +68,12 @@ export default function TripChatScreen({ route }) {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0} 
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
         <FlatList
           data={messages}
           renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()} // Ensure key is a string
           style={styles.messageList}
           inverted
         />
