@@ -5,7 +5,6 @@ import { createMaterialTopTabNavigator } from '@react-navigation/material-top-ta
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import MyTrips from '../components/MyTrips';
-import Chat from '../components/Chat';
 import Profile from '../components/Profile';
 import CreateTripScreen from '../screens/CreateTripScreen';
 import TripDetailsScreen from '../screens/TripDetailsScreen';
@@ -15,6 +14,7 @@ import AddEventScreen from '../screens/AddEventScreen';
 
 import TripExpensesScreen from '../screens/TripExpensesScreen';
 import AddExpenseScreen from '../screens/AddExpenseScreen';
+import TripChatScreen from '../screens/TripChatScreen';
 
 
 const Stack = createStackNavigator();
@@ -28,6 +28,7 @@ function TripTopTabNavigator({ route }) {
       <TopTab.Screen name="Details" component={TripDetailsScreen} initialParams={{ trip: trip }} />
       <TopTab.Screen name="Itinerary" component={TripItineraryScreen} initialParams={{ trip: trip }} />
       <TopTab.Screen name="Expenses" component={TripExpensesScreen} initialParams={{ trip: trip }} />
+      <TopTab.Screen name="Chat" component={TripChatScreen} initialParams={{ trip: trip }} /> 
     </TopTab.Navigator>
   );
 }
@@ -40,7 +41,6 @@ function BottomTabNavigator() {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
           if (route.name === 'MyTrips') iconName = focused ? 'home' : 'home-outline';
-          else if (route.name === 'Chat') iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
           else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -49,7 +49,6 @@ function BottomTabNavigator() {
       })}
     >
       <BottomTab.Screen name="MyTrips" component={MyTrips} options={{ title: 'My Trips' }} />
-      <BottomTab.Screen name="Chat" component={Chat} />
       <BottomTab.Screen name="Profile" component={Profile} />
     </BottomTab.Navigator>
   );
