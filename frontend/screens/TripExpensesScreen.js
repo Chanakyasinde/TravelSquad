@@ -48,11 +48,11 @@ export default function TripExpensesScreen({ route }) {
     <View style={styles.container}>
       <View style={styles.summaryContainer}>
         <Text style={styles.summaryTitle}>Debt Summary</Text>
-        {balances.map(item => (
-          <View key={item.name} style={styles.balanceRow}>
+        {balances.map((item, index) => (
+          <View key={`${item.name}-${index}`} style={styles.balanceRow}>
             <Text style={styles.balanceName}>{item.name}</Text>
             <Text style={[styles.balanceAmount, item.balance < 0 ? styles.owesMoney : styles.owedMoney]}>
-              {item.balance >= 0 ? `Is owed $${item.balance.toFixed(2)}` : `Owes $${(-item.balance).toFixed(2)}`}
+              {item.balance >= 0 ? `Is owed ${item.balance.toFixed(2)}` : `Owes ${(-item.balance).toFixed(2)}`}
             </Text>
           </View>
         ))}
@@ -62,7 +62,7 @@ export default function TripExpensesScreen({ route }) {
       <FlatList
         data={currentTrip.expenses}
         renderItem={renderExpense}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id ? item.id.toString() : Math.random().toString()}
         ListEmptyComponent={<Text style={styles.emptyText}>No expenses recorded yet.</Text>}
       />
       <View style={styles.buttonContainer}>
