@@ -11,11 +11,14 @@ export default function TripItineraryScreen({ route }) {
 
   const currentTrip = trips.find(t => t.id === trip.id);
 
-  const sortedEvents = currentTrip.events.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+  // Support both offline (dateTime) and backend (start_time) formats
+  const sortedEvents = [...(currentTrip.events || [])].sort(
+    (a, b) => new Date(a.dateTime || a.start_time) - new Date(b.dateTime || b.start_time)
+  );
 
   const renderEvent = ({ item }) => (
     <View style={styles.eventItem}>
-      <Text style={styles.eventTime}>{dayjs(item.dateTime).format('h:mm A')}</Text>
+      <Text style={styles.eventTime}>{dayjs(item.dateTime || item.start_time).format('h:mm A')}</Text>
       <View style={styles.eventDetails}>
         <Text style={styles.eventTitle}>{item.title}</Text>
         <Text style={styles.eventLocation}>{item.location}</Text>
@@ -28,7 +31,11 @@ export default function TripItineraryScreen({ route }) {
       <FlatList
         data={sortedEvents}
         renderItem={renderEvent}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => {
+          const key = item.id ?? item.event_id;
+          if (key !== undefined && key !== null) return String(key);
+          return `${item.title}-${item.dateTime || item.start_time || Math.random().toString(36).slice(2)}`;
+        }}
         ListEmptyComponent={<Text style={styles.emptyText}>No events planned yet.</Text>}
       />
       <View style={styles.buttonContainer}>

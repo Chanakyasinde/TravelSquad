@@ -52,10 +52,10 @@ export default function TripChatScreen({ route }) {
   };
 
   const renderMessage = ({ item }) => {
-    const isMyMessage = item.senderEmail === user.email;
+    const isMyMessage = user?.email && ((item.senderEmail || item.sender_email) === user.email);
     return (
       <View style={[styles.messageBubble, isMyMessage ? styles.myMessage : styles.otherMessage]}>
-        {!isMyMessage && <Text style={styles.senderEmail}>{item.senderEmail}</Text>}
+        {!isMyMessage && <Text style={styles.senderEmail}>{item.senderEmail || item.sender_email}</Text>}
         <Text style={isMyMessage ? styles.myMessageText : styles.otherMessageText}>
           {item.text || item.message_text}
         </Text>
@@ -73,7 +73,13 @@ export default function TripChatScreen({ route }) {
         <FlatList
           data={messages}
           renderItem={renderMessage}
-          keyExtractor={(item) => item.id.toString()} // Ensure key is a string
+          keyExtractor={(item) => {
+            const key = item.id ?? item.message_id ?? item._id;
+            if (key !== undefined && key !== null) return String(key);
+            // fallback if backend didn't supply an id
+            const created = item.createdAt || item.created_at;
+            return `${item.senderEmail || item.sender_email || 'unknown'}-${created || Math.random().toString(36).slice(2)}`;
+          }}
           style={styles.messageList}
           inverted
         />
