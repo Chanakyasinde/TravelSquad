@@ -1,11 +1,14 @@
 import React from 'react';
 import { View, Text, Button, Share, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 
 export default function TripDetailsScreen({ route }) {
   const { trip } = route.params;
+  const navigation = useNavigation();
 
-  const inviteCode = `TRIP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+  // Use deterministic code so others can join: TRIP-{trip.id}
+  const inviteCode = `TRIP-${String(trip.id)}`;
 
   const handleShare = async () => {
     try {
@@ -31,6 +34,11 @@ export default function TripDetailsScreen({ route }) {
       
       <View style={styles.buttonContainer}>
         <Button title="Share Invite" onPress={handleShare} />
+        <View style={{ height: 12 }} />
+        <Button
+          title="Add Member"
+          onPress={() => navigation.navigate('AddMember', { tripId: trip.id })}
+        />
       </View>
     </SafeAreaView>
   );

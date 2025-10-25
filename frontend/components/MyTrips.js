@@ -21,10 +21,16 @@ export default function MyTrips({ navigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Trips</Text>
-        <Button
-          title="+ Add Trip"
-          onPress={() => navigation.navigate('CreateTrip')}
-        />
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Button
+            title="+ Add Trip"
+            onPress={() => navigation.navigate('CreateTrip')}
+          />
+          <Button
+            title="Join Trip"
+            onPress={() => navigation.navigate('JoinTrip')}
+          />
+        </View>
       </View>
       <FlatList
         data={trips}

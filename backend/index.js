@@ -199,6 +199,93 @@ app.post('/trips/:tripId/expenses', async (req, res) => {
   }
 });
 
+// Add member to trip
+app.post('/trips/:tripId/members', async (req, res) => {
+  try {
+    const { tripId } = req.params;
+    const { email, name } = req.body;
+
+    if (!email || !name) {
+      return res.status(400).json({ error: 'Missing member email or name' });
+    }
+
+    try {
+      await pool.query(
+        'INSERT INTO trip_members (trip_id, member_email, member_name) VALUES (?, ?, ?)',
+        [tripId, email, name]
+      );
+    } catch (err) {
+      if (err && err.code === 'ER_DUP_ENTRY') {
+        // Member already exists; return existing row
+        const [rows] = await pool.query(
+          'SELECT * FROM trip_members WHERE trip_id = ? AND member_email = ?',
+          [tripId, email]
+        );
+        return res.status(200).json(rows[0]);
+      }
+      throw err;
+    }
+
+    const [rows] = await pool.query(
+      'SELECT * FROM trip_members WHERE trip_id = ? AND member_email = ?',
+      [tripId, email]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('Error adding member:', err);
+    res.status(500).json({ error: 'Failed to add member' });
+  }
+});
+
+// Join a trip via invite code (format: TRIP-{tripId})
+app.post('/trips/join', async (req, res) => {
+  try {
+    const { inviteCode, email, name } = req.body;
+
+    if (!inviteCode || !email) {
+      return res.status(400).json({ error: 'Missing invite code or email' });
+    }
+
+    const tripId = String(inviteCode).replace(/^TRIP-/, '');
+
+    // Validate trip exists
+    const [tripRows] = await pool.query('SELECT * FROM trips WHERE id = ?', [tripId]);
+    if (tripRows.length === 0) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    // Insert member if not already
+    try {
+      await pool.query(
+        'INSERT INTO trip_members (trip_id, member_email, member_name) VALUES (?, ?, ?)',
+        [tripId, email, name || email]
+      );
+    } catch (err) {
+      // Ignore duplicate entry; proceed to return trip
+      if (!(err && err.code === 'ER_DUP_ENTRY')) {
+        throw err;
+      }
+    }
+
+    // Return full trip data normalized as in GET /trips
+    const trip = tripRows[0];
+
+    const [events] = await pool.query('SELECT * FROM events WHERE trip_id = ?', [trip.id]);
+    trip.events = events;
+
+    const [expenses] = await pool.query('SELECT * FROM expenses WHERE trip_id = ?', [trip.id]);
+    trip.expenses = expenses;
+
+    const [members] = await pool.query('SELECT * FROM trip_members WHERE trip_id = ?', [trip.id]);
+    trip.members = members;
+
+    return res.status(200).json(trip);
+  } catch (err) {
+    console.error('Error joining trip:', err);
+    return res.status(500).json({ error: 'Failed to join trip' });
+  }
+});
+
 // Socket.io setup for chat
 io.on('connection', (socket) => {
   console.log(`A user connected: ${socket.id}`);

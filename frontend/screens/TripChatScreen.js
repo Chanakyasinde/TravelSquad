@@ -3,9 +3,13 @@ import { View, Text, TextInput, Button, FlatList, StyleSheet, KeyboardAvoidingVi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { io } from 'socket.io-client';
 import { auth } from '../firebaseConfig';
-import axios from 'axios'; 
+import axios from 'axios';
 
-const SERVER_URL = 'http://10.254.201.116:3001';
+// Resolve backend host for emulator/simulator or env override
+const HOST =
+  (typeof process !== 'undefined' && process.env && process.env.EXPO_PUBLIC_API_HOST) ||
+  (Platform.OS === 'android' ? '10.0.2.2' : 'localhost');
+const SERVER_URL = `http://${HOST}:3001`;
 
 export default function TripChatScreen({ route }) {
   const { trip } = route.params;
@@ -17,16 +21,23 @@ export default function TripChatScreen({ route }) {
   useEffect(() => {
     const fetchMessageHistory = async () => {
       try {
-        const response = await axios.get(`${SERVER_URL}/chat/${trip.id}`);
-        setMessages(response.data); 
+        const response = await axios.get(`${SERVER_URL}/chat/${trip.id}`, {
+          timeout: 10000,
+        });
+        setMessages(response.data);
       } catch (err) {
         console.error('Error fetching message history:', err);
+        setMessages([]);
       }
     };
-    
-    fetchMessageHistory(); 
 
-    socketRef.current = io(SERVER_URL);
+    fetchMessageHistory();
+
+    socketRef.current = io(SERVER_URL, {
+      timeout: 10000,
+      reconnection: true,
+      reconnectionAttempts: 5,
+    });
     socketRef.current.emit('joinRoom', trip.id);
 
     socketRef.current.on('receiveMessage', (messageData) => {

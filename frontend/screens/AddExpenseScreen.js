@@ -8,16 +8,22 @@ export default function AddExpenseScreen({ route, navigation }) {
   const { trips, addExpense } = useContext(TripContext);
   const currentTrip = trips.find(t => t.id === tripId);
 
+  // Canonical key: email (backend) else id (offline)
+  const getMemberKey = (m) => m.member_email ?? m.email ?? m.id ?? m.uid;
+  const getMemberName = (m) => m.member_name ?? m.name ?? m.email ?? 'Member';
+
+  const membersList = (currentTrip.members || []);
+
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [paidBy, setPaidBy] = useState(currentTrip.members[0].id);
-  const [splitWith, setSplitWith] = useState(currentTrip.members.map(m => m.id));
+  const [paidBy, setPaidBy] = useState(membersList.length ? getMemberKey(membersList[0]) : '');
+  const [splitWith, setSplitWith] = useState(membersList.map(getMemberKey));
 
-  const toggleSplitMember = (memberId) => {
-    if (splitWith.includes(memberId)) {
-      setSplitWith(splitWith.filter(id => id !== memberId));
+  const toggleSplitMember = (memberKey) => {
+    if (splitWith.includes(memberKey)) {
+      setSplitWith(splitWith.filter(k => k !== memberKey));
     } else {
-      setSplitWith([...splitWith, memberId]);
+      setSplitWith([...splitWith, memberKey]);
     }
   };
 
@@ -26,15 +32,27 @@ export default function AddExpenseScreen({ route, navigation }) {
       Alert.alert('Invalid Input', 'Please enter a valid description, amount, and select at least one person to split with.');
       return;
     }
-    
+
+    const selectedMembers = membersList.filter(m => splitWith.includes(getMemberKey(m)));
+    const evenShare = selectedMembers.length > 0 ? parseFloat(amount) / selectedMembers.length : 0;
+
+    const paidByMember = membersList.find(m => getMemberKey(m) === paidBy);
+    const paidByValue = paidByMember?.member_email || paidByMember?.email || getMemberKey(paidByMember) || paidBy;
+
+    const splitBetween = selectedMembers.map(m => ({
+      email: m.member_email || m.email || getMemberKey(m),
+      amount: evenShare
+    }));
+
     const newExpense = {
       id: Math.random().toString(),
       description,
       amount: parseFloat(amount),
-      paidBy: paidBy,
-      splitWith: splitWith,
+      paidBy: paidByValue,     // Email for backend, key for offline fallback
+      splitWith: splitWith,    // Offline-friendly equal split keys
+      splitBetween,            // Backend-friendly per-member splits
     };
-    
+
     addExpense(tripId, newExpense);
     navigation.goBack();
   };
@@ -49,21 +67,31 @@ export default function AddExpenseScreen({ route, navigation }) {
       
       <Text style={styles.label}>Paid by</Text>
       <View style={styles.memberSelector}>
-        {currentTrip.members.map(member => (
-          <TouchableOpacity key={member.id} style={[styles.memberChip, paidBy === member.id && styles.memberChipSelected]} onPress={() => setPaidBy(member.id)}>
-            <Text style={paidBy === member.id && styles.memberChipSelectedText}>{member.name}</Text>
-          </TouchableOpacity>
-        ))}
+        {membersList.map(m => {
+          const key = getMemberKey(m);
+          const name = getMemberName(m);
+          const selected = paidBy === key;
+          return (
+            <TouchableOpacity key={key} style={[styles.memberChip, selected && styles.memberChipSelected]} onPress={() => setPaidBy(key)}>
+              <Text style={selected && styles.memberChipSelectedText}>{name}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <Text style={styles.label}>Split Evenly Between</Text>
       <View style={styles.memberSelector}>
-        {currentTrip.members.map(member => (
-          <TouchableOpacity key={member.id} style={[styles.memberChip, splitWith.includes(member.id) && styles.memberChipSelected]} onPress={() => toggleSplitMember(member.id)}>
-            <Ionicons name={splitWith.includes(member.id) ? "checkbox" : "square-outline"} size={20} color={splitWith.includes(member.id) ? "#fff" : "#007AFF"} />
-            <Text style={[styles.memberChipText, splitWith.includes(member.id) && styles.memberChipSelectedText]}>{member.name}</Text>
-          </TouchableOpacity>
-        ))}
+        {membersList.map(m => {
+          const key = getMemberKey(m);
+          const name = getMemberName(m);
+          const selected = splitWith.includes(key);
+          return (
+            <TouchableOpacity key={key} style={[styles.memberChip, selected && styles.memberChipSelected]} onPress={() => toggleSplitMember(key)}>
+              <Ionicons name={selected ? "checkbox" : "square-outline"} size={20} color={selected ? "#fff" : "#007AFF"} />
+              <Text style={[styles.memberChipText, selected && styles.memberChipSelectedText]}>{name}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <Button title="Save Expense" onPress={handleAddExpense} />
