@@ -1,12 +1,15 @@
 import React, { useState, useEffect, createContext } from 'react';
 import axios from 'axios';
 import { API_URL } from '@env';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '../firebaseConfig';
 
-// Fallback to localhost if API_URL is not defined
-const SERVER_URL = API_URL || 'http://localhost:3001';
+// Resolve backend host for emulator/simulator or env override
+const HOST =
+  (typeof process !== 'undefined' && process.env && process.env.EXPO_PUBLIC_API_HOST) ||
+  (Platform.OS === 'android' ? '10.0.2.2' : 'localhost');
+const SERVER_URL = API_URL || `http://${HOST}:3001`;
 
 // Fallback dummy data in case API fails
 const DUMMY_MEMBERS = [
@@ -79,7 +82,7 @@ export const TripProvider = ({ children }) => {
       
       // Then try to fetch from API
       if (user && user.email) {
-        const response = await axios.get(`${SERVER_URL}/trips?userEmail=${user.email}`);
+        const response = await axios.get(`${SERVER_URL}/trips?userEmail=${user.email}`, { timeout: 10000 });
         if (response.data && Array.isArray(response.data)) {
           setTrips(response.data);
           // Save to AsyncStorage for offline access
@@ -126,7 +129,7 @@ export const TripProvider = ({ children }) => {
           members: [{ id: user.uid, name: user.displayName || user.email, email: user.email }]
         };
         
-        const response = await axios.post(`${SERVER_URL}/trips`, tripWithUser);
+        const response = await axios.post(`${SERVER_URL}/trips`, tripWithUser, { timeout: 10000 });
         if (response.data && response.data.id) {
           const updatedTrips = [...trips, response.data];
           setTrips(updatedTrips);
@@ -194,7 +197,7 @@ export const TripProvider = ({ children }) => {
           createdBy: user.email,
         };
 
-        const response = await axios.post(`${SERVER_URL}/trips/${tripId}/events`, eventWithUser);
+        const response = await axios.post(`${SERVER_URL}/trips/${tripId}/events`, eventWithUser, { timeout: 10000 });
         if (response.data) {
           // Normalize API event to UI shape (use dateTime for consistency)
           const apiEvent = response.data;
@@ -258,7 +261,7 @@ export const TripProvider = ({ children }) => {
           tripId
         };
         
-        const response = await axios.post(`${SERVER_URL}/trips/${tripId}/expenses`, expenseWithUser);
+        const response = await axios.post(`${SERVER_URL}/trips/${tripId}/expenses`, expenseWithUser, { timeout: 10000 });
         if (response.data) {
           const updatedTrips = trips.map(trip =>
             trip.id === tripId
@@ -301,6 +304,86 @@ export const TripProvider = ({ children }) => {
     }
   };
 
+  const addMember = async (tripId, member) => {
+    try {
+      if (user && user.email) {
+        const response = await axios.post(`${SERVER_URL}/trips/${tripId}/members`, {
+          email: member.email,
+          name: member.name,
+        }, { timeout: 10000 });
+        const apiMember = response.data; // { id, trip_id, member_email, member_name }
+        const updatedTrips = trips.map(trip =>
+          trip.id === tripId
+            ? { ...trip, members: [...(trip.members || []), apiMember] }
+            : trip
+        );
+        setTrips(updatedTrips);
+        saveTripsToStorage(updatedTrips);
+        return apiMember;
+      } else {
+        const offlineMember = {
+          id: member.email || Date.now().toString(),
+          name: member.name,
+          email: member.email,
+        };
+        const updatedTrips = trips.map(trip =>
+          trip.id === tripId
+            ? { ...trip, members: [...(trip.members || []), offlineMember] }
+            : trip
+        );
+        setTrips(updatedTrips);
+        saveTripsToStorage(updatedTrips);
+        return offlineMember;
+      }
+    } catch (err) {
+      console.error('Error adding member:', err);
+      Alert.alert('Error', 'Failed to add member. Please try again.');
+      const offlineMember = {
+        id: member.email || Date.now().toString(),
+        name: member.name,
+        email: member.email,
+      };
+      const updatedTrips = trips.map(trip =>
+        trip.id === tripId
+          ? { ...trip, members: [...(trip.members || []), offlineMember] }
+          : trip
+      );
+      setTrips(updatedTrips);
+      saveTripsToStorage(updatedTrips);
+      return offlineMember;
+    }
+  };
+
+  const joinTrip = async (inviteCode) => {
+    try {
+      if (user && user.email) {
+        const response = await axios.post(`${SERVER_URL}/trips/join`, {
+          inviteCode,
+          email: user.email,
+          name: user.displayName || user.email,
+        }, { timeout: 10000 });
+        if (response.data) {
+          // Add/merge trip into local state
+          const joinedTrip = response.data;
+          const exists = trips.some(t => String(t.id) === String(joinedTrip.id));
+          const updatedTrips = exists
+            ? trips.map(t => (String(t.id) === String(joinedTrip.id) ? joinedTrip : t))
+            : [...trips, joinedTrip];
+          setTrips(updatedTrips);
+          // Save to AsyncStorage
+          saveTripsToStorage(updatedTrips);
+          return joinedTrip;
+        }
+      } else {
+        Alert.alert('Login Required', 'Please log in to join a trip.');
+      }
+    } catch (err) {
+      console.error('Error joining trip:', err);
+      Alert.alert('Error', 'Failed to join trip. Check the invite code and try again.');
+      return null;
+    }
+  };
+
   return (
     <TripContext.Provider value={{ 
       trips, 
@@ -309,6 +392,8 @@ export const TripProvider = ({ children }) => {
       addTrip, 
       addEvent, 
       addExpense, 
+      addMember,
+      joinTrip,
       refreshTrips: fetchTrips 
     }}>
       {children}

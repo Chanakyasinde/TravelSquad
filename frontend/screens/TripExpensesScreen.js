@@ -10,36 +10,65 @@ export default function TripExpensesScreen({ route }) {
 
   const currentTrip = trips.find(t => t.id === trip.id);
 
+  // Use email if available (backend), else id (offline)
+  const getMemberKey = (m) => m.member_email ?? m.email ?? m.id ?? m.uid;
+  const getMemberName = (m) => m.member_name ?? m.name ?? m.email ?? 'Unknown';
+
   const balances = useMemo(() => {
     const memberBalances = {};
-    currentTrip.members.forEach(member => {
-      memberBalances[member.id] = { name: member.name, balance: 0 };
+    (currentTrip.members || []).forEach(member => {
+      const key = getMemberKey(member);
+      memberBalances[key] = { name: getMemberName(member), balance: 0 };
     });
 
-    currentTrip.expenses.forEach(expense => {
-      const amount = expense.amount;
-      const paidById = expense.paidBy;
-      const splitWithIds = expense.splitWith;
-      const share = amount / splitWithIds.length;
+    (currentTrip.expenses || []).forEach(expense => {
+      const amount = parseFloat(expense.amount) || 0;
+      const paidByKey = expense.paidBy ?? expense.paid_by;
 
-      memberBalances[paidById].balance += amount;
-      splitWithIds.forEach(memberId => {
-        memberBalances[memberId].balance -= share;
-      });
+      // Credit the payer (only if we can resolve them)
+      if (paidByKey && memberBalances[paidByKey]) {
+        memberBalances[paidByKey].balance += amount;
+      }
+
+      // Backend format: explicit per-member splits
+      if (Array.isArray(expense.splits) && expense.splits.length > 0) {
+        expense.splits.forEach(s => {
+          const splitKey = s.member_email ?? s.email ?? s.memberId;
+          const splitAmount = parseFloat(s.amount) || 0;
+          if (splitKey && memberBalances[splitKey]) {
+            memberBalances[splitKey].balance -= splitAmount;
+          }
+        });
+      } else {
+        // Offline/equal split
+        const splitWithKeys = Array.isArray(expense.splitWith)
+          ? expense.splitWith
+          : (currentTrip.members || []).map(getMemberKey);
+
+        const n = splitWithKeys.length;
+        const share = n > 0 ? amount / n : 0;
+
+        splitWithKeys.forEach(memberKey => {
+          if (memberBalances[memberKey]) {
+            memberBalances[memberKey].balance -= share;
+          }
+        });
+      }
     });
 
     return Object.values(memberBalances);
   }, [currentTrip.expenses, currentTrip.members]);
 
   const renderExpense = ({ item }) => {
-    const paidByMember = currentTrip.members.find(m => m.id === item.paidBy);
+    const paidByVal = item.paidBy ?? item.paid_by;
+    const paidByMember = (currentTrip.members || []).find(m => getMemberKey(m) === paidByVal);
     return (
       <View style={styles.expenseItem}>
         <View>
           <Text style={styles.expenseDescription}>{item.description}</Text>
-          <Text style={styles.paidByText}>Paid by {paidByMember?.name || 'Unknown'}</Text>
+          <Text style={styles.paidByText}>Paid by {paidByMember?.member_name ?? paidByMember?.name ?? 'Unknown'}</Text>
         </View>
-        <Text style={styles.expenseAmount}>${item.amount.toFixed(2)}</Text>
+        <Text style={styles.expenseAmount}>${(parseFloat(item.amount) || 0).toFixed(2)}</Text>
       </View>
     );
   };
