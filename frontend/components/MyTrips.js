@@ -9,7 +9,7 @@ export default function MyTrips({ navigation }) {
   const renderTrip = ({ item }) => (
     <TouchableOpacity
       style={styles.tripItem}
-      onPress={() => navigation.navigate('TripDetails', { trip: item })}
+      onPress={() => navigation.navigate('TripDetails', { tripId: item.id })}
     >
       <Text style={styles.tripName}>{item.name}</Text>
       <Text style={styles.tripDestination}>{item.destination}</Text>

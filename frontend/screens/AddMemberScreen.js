@@ -26,7 +26,16 @@ export default function AddMemberScreen({ route, navigation }) {
     }
 
     await addMember(tripId, { name: name.trim(), email: email.trim() });
-    navigation.goBack();
+
+    // Safe navigation: avoid “GO_BACK not handled”
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      const parent = navigation.getParent?.();
+      if (parent?.canGoBack?.()) parent.goBack();
+      else if (parent) parent.navigate('TripDetails', { tripId });
+      else navigation.navigate('MainTabs');
+    }
   };
 
   return (

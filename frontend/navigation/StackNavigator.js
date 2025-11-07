@@ -17,6 +17,7 @@ import AddExpenseScreen from '../screens/AddExpenseScreen';
 import AddMemberScreen from '../screens/AddMemberScreen';
 import JoinTripScreen from '../screens/JoinTripScreen';
 import TripChatScreen from '../screens/TripChatScreen';
+import EditTripScreen from '../screens/EditTripScreen';
 
 
 const Stack = createStackNavigator();
@@ -24,13 +25,13 @@ const BottomTab = createBottomTabNavigator();
 const TopTab = createMaterialTopTabNavigator();
 
 function TripTopTabNavigator({ route }) {
-  const { trip } = route.params;
+  const { tripId } = route.params;
   return (
     <TopTab.Navigator>
-      <TopTab.Screen name="Details" component={TripDetailsScreen} initialParams={{ trip: trip }} />
-      <TopTab.Screen name="Itinerary" component={TripItineraryScreen} initialParams={{ trip: trip }} />
-      <TopTab.Screen name="Expenses" component={TripExpensesScreen} initialParams={{ trip: trip }} />
-      <TopTab.Screen name="Chat" component={TripChatScreen} initialParams={{ trip: trip }} /> 
+      <TopTab.Screen name="Details" component={TripDetailsScreen} initialParams={{ tripId }} />
+      <TopTab.Screen name="Itinerary" component={TripItineraryScreen} initialParams={{ tripId }} />
+      <TopTab.Screen name="Expenses" component={TripExpensesScreen} initialParams={{ tripId }} />
+      <TopTab.Screen name="Chat" component={TripChatScreen} initialParams={{ tripId }} /> 
     </TopTab.Navigator>
   );
 }
@@ -61,11 +62,16 @@ export default function StackNavigator() {
     <Stack.Navigator>
       <Stack.Screen name="MainTabs" component={BottomTabNavigator} options={{ headerShown: false }} />
       <Stack.Screen name="CreateTrip" component={CreateTripScreen} options={{ headerShown: true, title: 'Create Trip' }} />
-      <Stack.Screen name="TripDetails" component={TripTopTabNavigator} options={({ route }) => ({ headerShown: true, title: route.params.trip.name })} />
+      <Stack.Screen
+        name="TripDetails"
+        component={TripTopTabNavigator}
+        options={{ headerShown: true, title: 'Trip' }}
+      />
       <Stack.Screen name="AddEvent" component={AddEventScreen} options={{ headerShown: true, title: 'Add New Event' }} />
       <Stack.Screen name="AddExpense" component={AddExpenseScreen} options={{ headerShown: true, title: 'Add New Expense' }} />
       <Stack.Screen name="AddMember" component={AddMemberScreen} options={{ headerShown: true, title: 'Add Member' }} />
       <Stack.Screen name="JoinTrip" component={JoinTripScreen} options={{ headerShown: true, title: 'Join Trip' }} />
+      <Stack.Screen name="EditTrip" component={EditTripScreen} options={{ headerShown: true, title: 'Edit Trip' }} />
     </Stack.Navigator>
   );
 }

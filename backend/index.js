@@ -318,3 +318,45 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
+
+// Update a trip
+app.put('/trips/:tripId', async (req, res) => {
+  try {
+    const { tripId } = req.params;
+    const { name, destination, startDate, endDate } = req.body;
+
+    if (!name || !destination || !startDate || !endDate) {
+      return res.status(400).json({ error: 'Missing required trip fields' });
+    }
+
+    await pool.query(
+      'UPDATE trips SET name = ?, destination = ?, start_date = ?, end_date = ? WHERE id = ?',
+      [name, destination, startDate, endDate, tripId]
+    );
+
+    const [rows] = await pool.query('SELECT * FROM trips WHERE id = ?', [tripId]);
+    if (!rows.length) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+    res.status(200).json(rows[0]);
+  } catch (err) {
+    console.error('Error updating trip:', err);
+    res.status(500).json({ error: 'Failed to update trip' });
+  }
+});
+
+// Delete a trip
+app.delete('/trips/:tripId', async (req, res) => {
+  try {
+    const { tripId } = req.params;
+    const [rows] = await pool.query('SELECT * FROM trips WHERE id = ?', [tripId]);
+    if (!rows.length) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+    await pool.query('DELETE FROM trips WHERE id = ?', [tripId]);
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Error deleting trip:', err);
+    res.status(500).json({ error: 'Failed to delete trip' });
+  }
+});

@@ -12,7 +12,7 @@ const HOST =
 const SERVER_URL = `http://${HOST}:3001`;
 
 export default function TripChatScreen({ route }) {
-  const { trip } = route.params;
+  const { tripId } = route.params;
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const socketRef = useRef(null);
@@ -21,9 +21,7 @@ export default function TripChatScreen({ route }) {
   useEffect(() => {
     const fetchMessageHistory = async () => {
       try {
-        const response = await axios.get(`${SERVER_URL}/chat/${trip.id}`, {
-          timeout: 10000,
-        });
+        const response = await axios.get(`${SERVER_URL}/chat/${tripId}`, { timeout: 10000 });
         setMessages(response.data);
       } catch (err) {
         console.error('Error fetching message history:', err);
@@ -38,7 +36,7 @@ export default function TripChatScreen({ route }) {
       reconnection: true,
       reconnectionAttempts: 5,
     });
-    socketRef.current.emit('joinRoom', trip.id);
+    socketRef.current.emit('joinRoom', tripId);
 
     socketRef.current.on('receiveMessage', (messageData) => {
       setMessages((prevMessages) => [messageData, ...prevMessages]);
@@ -47,17 +45,22 @@ export default function TripChatScreen({ route }) {
     return () => {
       socketRef.current.disconnect();
     };
-  }, [trip.id]);
+  }, [tripId]);
 
   const handleSend = () => {
     if (message.trim() === '') return;
     const messageData = {
-      roomId: trip.id,
+      roomId: tripId,
       id: Math.random().toString(), 
       text: message,
       senderEmail: user?.email || 'Anonymous',
       createdAt: new Date(),
     };
+    
+    // Add message to local state immediately for instant feedback
+    setMessages(prevMessages => [messageData, ...prevMessages]);
+    
+    // Send to server
     socketRef.current.emit('sendMessage', messageData);
     setMessage('');
   };

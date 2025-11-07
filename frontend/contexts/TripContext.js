@@ -119,239 +119,296 @@ export const TripProvider = ({ children }) => {
     return unsubscribe;
   }, []);
 
-  const addTrip = async (newTrip) => {
-    try {
-      if (user && user.email) {
-        // Add user as creator/member
-        const tripWithUser = {
-          ...newTrip,
-          createdBy: user.email,
-          members: [{ id: user.uid, name: user.displayName || user.email, email: user.email }]
-        };
-        
-        const response = await axios.post(`${SERVER_URL}/trips`, tripWithUser, { timeout: 10000 });
+  // Quiet background persistence with retries; replaces local trip once server responds
+  const persistTripToServer = (localId, tripPayload, attempt = 1) => {
+    const maxAttempts = 3;
+    const delayMs = 5000;
+
+    axios.post(`${SERVER_URL}/trips`, tripPayload, { timeout: 4000 })
+      .then((response) => {
         if (response.data && response.data.id) {
-          const updatedTrips = [...trips, response.data];
-          setTrips(updatedTrips);
-          // Save to AsyncStorage
-          saveTripsToStorage(updatedTrips);
-          return response.data;
+          setTrips(prev => {
+            const arr = prev.map(t => (t.id === localId ? response.data : t));
+            saveTripsToStorage(arr);
+            return arr;
+          });
         }
-      } else {
-        // Offline mode - generate fake ID and add to local state
-        const offlineTrip = { 
-          ...newTrip, 
-          id: Date.now().toString(),
-          members: DUMMY_MEMBERS, 
-          events: [], 
-          expenses: [] 
-        };
-        const updatedTrips = [...trips, offlineTrip];
-        setTrips(updatedTrips);
-        // Save to AsyncStorage
-        saveTripsToStorage(updatedTrips);
-        return offlineTrip;
-      }
-    } catch (err) {
-      console.error('Error adding trip:', err);
-      Alert.alert('Error', 'Failed to create trip. Please try again.');
-      
-      // Add trip locally anyway for better user experience
-      const offlineTrip = { 
-        ...newTrip, 
-        id: Date.now().toString(),
-        members: DUMMY_MEMBERS, 
-        events: [], 
-        expenses: [] 
+      })
+      .catch(() => {
+        if (attempt < maxAttempts) {
+          setTimeout(() => persistTripToServer(localId, tripPayload, attempt + 1), delayMs);
+        } else {
+          // Mark as not pending after final attempt
+          setTrips(prev => {
+            const arr = prev.map(t => (t.id === localId ? { ...t, pending: false } : t));
+            saveTripsToStorage(arr);
+            return arr;
+          });
+        }
+      });
+  };
+
+  const addTrip = async (newTrip) => {
+    // Optimistic local trip so UI updates instantly
+    const localTrip = {
+      ...newTrip,
+      id: `local_${Date.now()}`,
+      members: user && user.email
+        ? [{ id: user.uid || `local_${Date.now()}`, name: user.displayName || user.email, email: user.email }]
+        : DUMMY_MEMBERS,
+      events: [],
+      expenses: [],
+      pending: true,
+    };
+
+    setTrips(prev => {
+      const arr = [...prev, localTrip];
+      saveTripsToStorage(arr);
+      return arr;
+    });
+
+    if (user && user.email) {
+      // Persist in background (silent retries)
+      const tripWithUser = {
+        ...newTrip,
+        createdBy: user.email,
+        members: [{ email: user.email, name: user.displayName || user.email }],
       };
-      const updatedTrips = [...trips, offlineTrip];
-      setTrips(updatedTrips);
-      // Save to AsyncStorage
-      saveTripsToStorage(updatedTrips);
-      return offlineTrip;
+      persistTripToServer(localTrip.id, tripWithUser);
     }
+
+    return localTrip;
+  };
+
+  const persistEventToServer = (tripId, localId, newEvent, attempt = 1) => {
+    const maxAttempts = 3;
+    const delayMs = 5000;
+
+    const startTime =
+      typeof newEvent.dateTime === 'string'
+        ? newEvent.dateTime
+        : newEvent.dateTime?.toISOString();
+
+    const endTime = newEvent.endTime
+      ? (typeof newEvent.endTime === 'string'
+          ? newEvent.endTime
+          : newEvent.endTime.toISOString())
+      : null;
+
+    const payload = {
+      title: newEvent.title,
+      description: newEvent.description || null,
+      location: newEvent.location || null,
+      startTime,
+      endTime,
+      createdBy: auth.currentUser?.email,
+    };
+
+    axios.post(`${SERVER_URL}/trips/${tripId}/events`, payload, { timeout: 4000 })
+      .then((response) => {
+        const apiEvent = response.data;
+        const normalizedEvent = {
+          id: apiEvent.id,
+          title: apiEvent.title,
+          description: apiEvent.description,
+          location: apiEvent.location,
+          dateTime: apiEvent.start_time,
+          endTime: apiEvent.end_time,
+          createdBy: apiEvent.created_by,
+          pending: false,
+        };
+        setTrips(prev => {
+          const updated = prev.map(t =>
+            t.id === tripId
+              ? { ...t, events: (t.events || []).map(e => (e.id === localId ? normalizedEvent : e)) }
+              : t
+          );
+          saveTripsToStorage(updated);
+          return updated;
+        });
+      })
+      .catch(() => {
+        if (attempt < maxAttempts) {
+          setTimeout(() => persistEventToServer(tripId, localId, newEvent, attempt + 1), delayMs);
+        } else {
+          setTrips(prev => {
+            const updated = prev.map(t =>
+              t.id === tripId
+                ? { ...t, events: (t.events || []).map(e => (e.id === localId ? { ...e, pending: false } : e)) }
+                : t
+            );
+            saveTripsToStorage(updated);
+            return updated;
+          });
+        }
+      });
   };
 
   const addEvent = async (tripId, newEvent) => {
-    try {
-      if (user && user.email) {
-        // Normalize date fields for backend
-        const startTime =
-          typeof newEvent.dateTime === 'string'
-            ? newEvent.dateTime
-            : newEvent.dateTime?.toISOString();
+    const localEvent = {
+      ...newEvent,
+      id: `local_event_${Date.now()}`,
+      pending: true,
+    };
 
-        const endTime =
-          newEvent.endTime
-            ? (typeof newEvent.endTime === 'string'
-                ? newEvent.endTime
-                : newEvent.endTime.toISOString())
-            : null;
-
-        const eventWithUser = {
-          title: newEvent.title,
-          description: newEvent.description || null,
-          location: newEvent.location || null,
-          startTime,
-          endTime,
-          createdBy: user.email,
-        };
-
-        const response = await axios.post(`${SERVER_URL}/trips/${tripId}/events`, eventWithUser, { timeout: 10000 });
-        if (response.data) {
-          // Normalize API event to UI shape (use dateTime for consistency)
-          const apiEvent = response.data;
-          const normalizedEvent = {
-            id: apiEvent.id,
-            title: apiEvent.title,
-            description: apiEvent.description,
-            location: apiEvent.location,
-            dateTime: apiEvent.start_time, // map backend start_time to UI dateTime
-            endTime: apiEvent.end_time,
-            createdBy: apiEvent.created_by,
-          };
-
-          const updatedTrips = trips.map(trip =>
-            trip.id === tripId
-              ? { ...trip, events: [...(trip.events || []), normalizedEvent] }
-              : trip
-          );
-          setTrips(updatedTrips);
-          // Save to AsyncStorage
-          saveTripsToStorage(updatedTrips);
-          return normalizedEvent;
-        }
-      } else {
-        // Offline mode
-        const offlineEvent = { ...newEvent, id: Date.now().toString() };
-        const updatedTrips = trips.map(trip =>
-          trip.id === tripId
-            ? { ...trip, events: [...(trip.events || []), offlineEvent] }
-            : trip
-        );
-        setTrips(updatedTrips);
-        // Save to AsyncStorage
-        saveTripsToStorage(updatedTrips);
-        return offlineEvent;
-      }
-    } catch (err) {
-      console.error('Error adding event:', err);
-      Alert.alert('Error', 'Failed to add event. Please try again.');
-
-      // Still update UI optimistically
-      const offlineEvent = { ...newEvent, id: Date.now().toString() };
-      const updatedTrips = trips.map(trip =>
-        trip.id === tripId
-          ? { ...trip, events: [...(trip.events || []), offlineEvent] }
-          : trip
+    setTrips(prev => {
+      const updated = prev.map(t =>
+        t.id === tripId
+          ? { ...t, events: [...(t.events || []), localEvent] }
+          : t
       );
-      setTrips(updatedTrips);
-      // Save to AsyncStorage
-      saveTripsToStorage(updatedTrips);
-      return offlineEvent;
+      saveTripsToStorage(updated);
+      return updated;
+    });
+
+    if (auth.currentUser?.email) {
+      persistEventToServer(tripId, localEvent.id, newEvent);
     }
+
+    return localEvent;
   };
 
-  const addExpense = async (tripId, newExpense) => {
-    try {
-      if (user && user.email) {
-        const expenseWithUser = {
-          ...newExpense,
-          createdBy: user.email,
-          tripId
-        };
-        
-        const response = await axios.post(`${SERVER_URL}/trips/${tripId}/expenses`, expenseWithUser, { timeout: 10000 });
+  // Quiet background persistence for expenses with retries
+  const persistExpenseToServer = (tripId, localId, expensePayload, attempt = 1) => {
+    const maxAttempts = 3;
+    const delayMs = 4000;
+
+    axios.post(`${SERVER_URL}/trips/${tripId}/expenses`, expensePayload, { timeout: 4000 })
+      .then((response) => {
         if (response.data) {
-          const updatedTrips = trips.map(trip =>
-            trip.id === tripId
-              ? { ...trip, expenses: [...(trip.expenses || []), response.data] }
-              : trip
-          );
-          setTrips(updatedTrips);
-          // Save to AsyncStorage
-          saveTripsToStorage(updatedTrips);
-          return response.data;
+          setTrips(prev => {
+            const updated = prev.map(trip =>
+              trip.id === tripId
+                ? { ...trip, expenses: (trip.expenses || []).map(e => 
+                    e.id === localId ? { ...response.data, pending: false } : e
+                  )}
+                : trip
+            );
+            saveTripsToStorage(updated);
+            return updated;
+          });
         }
-      } else {
-        // Offline mode
-        const offlineExpense = { ...newExpense, id: Date.now().toString() };
-        const updatedTrips = trips.map(trip =>
-          trip.id === tripId
-            ? { ...trip, expenses: [...(trip.expenses || []), offlineExpense] }
-            : trip
-        );
-        setTrips(updatedTrips);
-        // Save to AsyncStorage
-        saveTripsToStorage(updatedTrips);
-        return offlineExpense;
-      }
-    } catch (err) {
-      console.error('Error adding expense:', err);
-      Alert.alert('Error', 'Failed to add expense. Please try again.');
-      
-      // Still update UI optimistically
-      const offlineExpense = { ...newExpense, id: Date.now().toString() };
-      const updatedTrips = trips.map(trip =>
-        trip.id === tripId
-          ? { ...trip, expenses: [...(trip.expenses || []), offlineExpense] }
-          : trip
-      );
-      setTrips(updatedTrips);
-      // Save to AsyncStorage
-      saveTripsToStorage(updatedTrips);
-      return offlineExpense;
-    }
+      })
+      .catch(() => {
+        if (attempt < maxAttempts) {
+          setTimeout(() => persistExpenseToServer(tripId, localId, expensePayload, attempt + 1), delayMs);
+        } else {
+          // Mark as not pending after final attempt
+          setTrips(prev => {
+            const updated = prev.map(trip =>
+              trip.id === tripId
+                ? { ...trip, expenses: (trip.expenses || []).map(e => 
+                    e.id === localId ? { ...e, pending: false } : e
+                  )}
+                : trip
+            );
+            saveTripsToStorage(updated);
+            return updated;
+          });
+        }
+      });
   };
 
-  const addMember = async (tripId, member) => {
-    try {
-      if (user && user.email) {
-        const response = await axios.post(`${SERVER_URL}/trips/${tripId}/members`, {
-          email: member.email,
-          name: member.name,
-        }, { timeout: 10000 });
-        const apiMember = response.data; // { id, trip_id, member_email, member_name }
-        const updatedTrips = trips.map(trip =>
-          trip.id === tripId
-            ? { ...trip, members: [...(trip.members || []), apiMember] }
-            : trip
-        );
-        setTrips(updatedTrips);
-        saveTripsToStorage(updatedTrips);
-        return apiMember;
-      } else {
-        const offlineMember = {
-          id: member.email || Date.now().toString(),
-          name: member.name,
-          email: member.email,
-        };
-        const updatedTrips = trips.map(trip =>
-          trip.id === tripId
-            ? { ...trip, members: [...(trip.members || []), offlineMember] }
-            : trip
-        );
-        setTrips(updatedTrips);
-        saveTripsToStorage(updatedTrips);
-        return offlineMember;
-      }
-    } catch (err) {
-      console.error('Error adding member:', err);
-      Alert.alert('Error', 'Failed to add member. Please try again.');
-      const offlineMember = {
-        id: member.email || Date.now().toString(),
-        name: member.name,
-        email: member.email,
+  const addExpense = (tripId, newExpense) => {
+    // Create optimistic local expense
+    const localExpense = {
+      ...newExpense,
+      id: `local_expense_${Date.now()}`,
+      pending: true
+    };
+    
+    // Update UI immediately
+    const updatedTrips = trips.map(trip =>
+      trip.id === tripId
+        ? { ...trip, expenses: [...(trip.expenses || []), localExpense] }
+        : trip
+    );
+    setTrips(updatedTrips);
+    saveTripsToStorage(updatedTrips);
+    
+    // Persist in background if online
+    if (user && user.email) {
+      const expenseWithUser = {
+        ...newExpense,
+        createdBy: user.email,
+        tripId
       };
-      const updatedTrips = trips.map(trip =>
-        trip.id === tripId
-          ? { ...trip, members: [...(trip.members || []), offlineMember] }
-          : trip
-      );
-      setTrips(updatedTrips);
-      saveTripsToStorage(updatedTrips);
-      return offlineMember;
+      persistExpenseToServer(tripId, localExpense.id, expenseWithUser);
     }
+    
+    return localExpense;
+  };
+
+  // New helper: persist member quietly with retries
+  const persistMemberToServer = (tripId, localId, member, attempt = 1) => {
+    const maxAttempts = 3;
+    const delayMs = 5000;
+  
+    axios.post(`${SERVER_URL}/trips/${tripId}/members`, {
+      email: member.email,
+      name: member.name,
+    }, { timeout: 4000 })
+      .then((response) => {
+        const apiMember = response.data; // { id, trip_id, member_email, member_name }
+        const normalizedMember = {
+          id: apiMember.id,
+          member_email: apiMember.member_email,
+          member_name: apiMember.member_name,
+          email: apiMember.member_email,
+          name: apiMember.member_name,
+          pending: false,
+        };
+        setTrips(prev => {
+          const updated = prev.map(t =>
+            t.id === tripId
+              ? { ...t, members: (t.members || []).map(m => (m.id === localId ? normalizedMember : m)) }
+              : t
+          );
+          saveTripsToStorage(updated);
+          return updated;
+        });
+      })
+      .catch(() => {
+        if (attempt < maxAttempts) {
+          setTimeout(() => persistMemberToServer(tripId, localId, member, attempt + 1), delayMs);
+        } else {
+          setTrips(prev => {
+            const updated = prev.map(t =>
+              t.id === tripId
+                ? { ...t, members: (t.members || []).map(m => (m.id === localId ? { ...m, pending: false } : m)) }
+                : t
+            );
+            saveTripsToStorage(updated);
+            return updated;
+          });
+        }
+      });
+  };
+
+  // Replace existing addMember with optimistic version
+  const addMember = async (tripId, member) => {
+    const localMember = {
+      id: `local_member_${Date.now()}`,
+      name: member.name,
+      email: member.email,
+      pending: true,
+    };
+  
+    setTrips(prev => {
+      const updated = prev.map(t =>
+        t.id === tripId
+          ? { ...t, members: [...(t.members || []), localMember] }
+          : t
+      );
+      saveTripsToStorage(updated);
+      return updated;
+    });
+  
+    if (user && user.email) {
+      persistMemberToServer(tripId, localMember.id, member);
+    }
+  
+    return localMember;
   };
 
   const joinTrip = async (inviteCode) => {
@@ -384,6 +441,52 @@ export const TripProvider = ({ children }) => {
     }
   };
 
+  // Update trip details
+  const updateTrip = async (tripId, patch) => {
+    try {
+      if (user && user.email) {
+        const response = await axios.put(`${SERVER_URL}/trips/${tripId}`, patch, { timeout: 10000 });
+        if (response.data) {
+          const updatedTrips = trips.map(t => (t.id === tripId ? { ...t, ...response.data } : t));
+          setTrips(updatedTrips);
+          saveTripsToStorage(updatedTrips);
+          return response.data;
+        }
+      }
+      // Offline: update locally
+      const updatedTrips = trips.map(t => (t.id === tripId ? { ...t, ...patch } : t));
+      setTrips(updatedTrips);
+      saveTripsToStorage(updatedTrips);
+      return patch;
+    } catch (err) {
+      console.error('Error updating trip:', err);
+      Alert.alert('Error', 'Failed to update trip. Please try again.');
+      const updatedTrips = trips.map(t => (t.id === tripId ? { ...t, ...patch } : t));
+      setTrips(updatedTrips);
+      saveTripsToStorage(updatedTrips);
+      return patch;
+    }
+  };
+
+  // Delete trip
+  const deleteTrip = async (tripId) => {
+    // Optimistic local delete
+    setTrips(prev => {
+      const updated = prev.filter(t => t.id !== tripId);
+      saveTripsToStorage(updated);
+      return updated;
+    });
+
+    // Silent background server delete with short timeout
+    if (user && user.email) {
+      try {
+        await axios.delete(`${SERVER_URL}/trips/${tripId}`, { timeout: 4000 });
+      } catch (_) {
+        // ignore; local state already updated
+      }
+    }
+  };
+
   return (
     <TripContext.Provider value={{ 
       trips, 
@@ -394,7 +497,9 @@ export const TripProvider = ({ children }) => {
       addExpense, 
       addMember,
       joinTrip,
-      refreshTrips: fetchTrips 
+      refreshTrips: fetchTrips,
+      updateTrip,
+      deleteTrip
     }}>
       {children}
     </TripContext.Provider>

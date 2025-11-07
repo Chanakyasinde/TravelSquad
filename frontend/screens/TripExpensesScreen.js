@@ -1,36 +1,44 @@
-import React, { useContext, useMemo } from 'react';
+import React, { useContext, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Button } from 'react-native';
 import { TripContext } from '../contexts/TripContext';
 import { useNavigation } from '@react-navigation/native';
 
 export default function TripExpensesScreen({ route }) {
-  const { trip } = route.params;
+  const { tripId } = route.params;
   const { trips } = useContext(TripContext);
   const navigation = useNavigation();
 
-  const currentTrip = trips.find(t => t.id === trip.id);
+  const currentTrip = trips.find(t => t.id === tripId);
 
-  // Use email if available (backend), else id (offline)
+  useEffect(() => {
+    if (!currentTrip) {
+      const parent = navigation.getParent?.();
+      if (parent?.canGoBack?.()) parent.goBack();
+      else if (parent) parent.navigate('MainTabs');
+    }
+  }, [currentTrip, navigation]);
+
+  const memberList = currentTrip?.members || [];
+  const expenseList = currentTrip?.expenses || [];
+
   const getMemberKey = (m) => m.member_email ?? m.email ?? m.id ?? m.uid;
   const getMemberName = (m) => m.member_name ?? m.name ?? m.email ?? 'Unknown';
 
   const balances = useMemo(() => {
     const memberBalances = {};
-    (currentTrip.members || []).forEach(member => {
+    memberList.forEach(member => {
       const key = getMemberKey(member);
       memberBalances[key] = { name: getMemberName(member), balance: 0 };
     });
 
-    (currentTrip.expenses || []).forEach(expense => {
+    expenseList.forEach(expense => {
       const amount = parseFloat(expense.amount) || 0;
       const paidByKey = expense.paidBy ?? expense.paid_by;
 
-      // Credit the payer (only if we can resolve them)
       if (paidByKey && memberBalances[paidByKey]) {
         memberBalances[paidByKey].balance += amount;
       }
 
-      // Backend format: explicit per-member splits
       if (Array.isArray(expense.splits) && expense.splits.length > 0) {
         expense.splits.forEach(s => {
           const splitKey = s.member_email ?? s.email ?? s.memberId;
@@ -40,10 +48,9 @@ export default function TripExpensesScreen({ route }) {
           }
         });
       } else {
-        // Offline/equal split
         const splitWithKeys = Array.isArray(expense.splitWith)
           ? expense.splitWith
-          : (currentTrip.members || []).map(getMemberKey);
+          : memberList.map(getMemberKey);
 
         const n = splitWithKeys.length;
         const share = n > 0 ? amount / n : 0;
@@ -57,11 +64,19 @@ export default function TripExpensesScreen({ route }) {
     });
 
     return Object.values(memberBalances);
-  }, [currentTrip.expenses, currentTrip.members]);
+  }, [memberList, expenseList]);
+
+  if (!currentTrip) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.emptyText}>This trip was removed.</Text>
+      </View>
+    );
+  }
 
   const renderExpense = ({ item }) => {
     const paidByVal = item.paidBy ?? item.paid_by;
-    const paidByMember = (currentTrip.members || []).find(m => getMemberKey(m) === paidByVal);
+    const paidByMember = memberList.find(m => getMemberKey(m) === paidByVal);
     return (
       <View style={styles.expenseItem}>
         <View>
@@ -89,15 +104,15 @@ export default function TripExpensesScreen({ route }) {
       
       <Text style={styles.listHeader}>All Transactions</Text>
       <FlatList
-        data={currentTrip.expenses}
+        data={expenseList}
         renderItem={renderExpense}
-        keyExtractor={(item) => item.id ? item.id.toString() : Math.random().toString()}
+        keyExtractor={(item) => item.id ? String(item.id) : Math.random().toString()}
         ListEmptyComponent={<Text style={styles.emptyText}>No expenses recorded yet.</Text>}
       />
       <View style={styles.buttonContainer}>
         <Button 
           title="+ Add Expense" 
-          onPress={() => navigation.navigate('AddExpense', { tripId: trip.id })} 
+          onPress={() => navigation.navigate('AddExpense', { tripId })} 
         />
       </View>
     </View>
@@ -105,19 +120,19 @@ export default function TripExpensesScreen({ route }) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f0f2f5' },
-    summaryContainer: { padding: 20, backgroundColor: '#fff', marginBottom: 10 },
-    summaryTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-    balanceRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
-    balanceName: { fontSize: 16 },
-    balanceAmount: { fontSize: 16, fontWeight: '500' },
-    owesMoney: { color: '#dc3545' },
-    owedMoney: { color: '#28a745' },
-    listHeader: { fontSize: 18, fontWeight: 'bold', paddingHorizontal: 20, paddingBottom: 10 },
-    expenseItem: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e9ecef' },
-    expenseDescription: { fontSize: 16 },
-    paidByText: { fontSize: 12, color: 'gray', marginTop: 4 },
-    expenseAmount: { fontSize: 16, fontWeight: '600' },
-    emptyText: { textAlign: 'center', marginTop: 30, fontSize: 16, color: 'gray' },
-    buttonContainer: { padding: 20, backgroundColor: '#f0f2f5' },
+  container: { flex: 1, backgroundColor: '#f0f2f5' },
+  summaryContainer: { padding: 20, backgroundColor: '#fff', marginBottom: 10 },
+  summaryTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  balanceRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
+  balanceName: { fontSize: 16 },
+  balanceAmount: { fontSize: 16, fontWeight: '500' },
+  owesMoney: { color: '#dc3545' },
+  owedMoney: { color: '#28a745' },
+  listHeader: { fontSize: 18, fontWeight: 'bold', paddingHorizontal: 20, paddingBottom: 10 },
+  expenseItem: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e9ecef' },
+  expenseDescription: { fontSize: 16 },
+  paidByText: { fontSize: 12, color: 'gray', marginTop: 4 },
+  expenseAmount: { fontSize: 16, fontWeight: '600' },
+  emptyText: { textAlign: 'center', marginTop: 30, fontSize: 16, color: 'gray' },
+  buttonContainer: { padding: 20, backgroundColor: '#f0f2f5' },
 });
