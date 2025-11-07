@@ -1,18 +1,25 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Button } from 'react-native';
 import { TripContext } from '../contexts/TripContext';
 import { useNavigation } from '@react-navigation/native';
 import dayjs from 'dayjs';
 
 export default function TripItineraryScreen({ route }) {
-  const { trip } = route.params;
+  const { tripId } = route.params;
   const { trips } = useContext(TripContext);
   const navigation = useNavigation();
 
-  const currentTrip = trips.find(t => t.id === trip.id);
+  const currentTrip = trips.find(t => t.id === tripId);
 
-  // Support both offline (dateTime) and backend (start_time) formats
-  const sortedEvents = [...(currentTrip.events || [])].sort(
+  useEffect(() => {
+    if (!currentTrip) {
+      const parent = navigation.getParent?.();
+      if (parent?.canGoBack?.()) parent.goBack();
+      else if (parent) parent.navigate('MainTabs');
+    }
+  }, [currentTrip, navigation]);
+
+  const sortedEvents = [...(currentTrip?.events || [])].sort(
     (a, b) => new Date(a.dateTime || a.start_time) - new Date(b.dateTime || b.start_time)
   );
 
@@ -41,7 +48,7 @@ export default function TripItineraryScreen({ route }) {
       <View style={styles.buttonContainer}>
         <Button 
           title="+ Add Event" 
-          onPress={() => navigation.navigate('AddEvent', { tripId: trip.id })} 
+          onPress={() => currentTrip && navigation.navigate('AddEvent', { tripId })} 
         />
       </View>
     </View>

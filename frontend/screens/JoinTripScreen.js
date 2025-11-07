@@ -15,7 +15,7 @@ export default function JoinTripScreen({ navigation }) {
     const trip = await joinTrip(code);
     if (trip) {
       Alert.alert('Joined', `You joined "${trip.name}".`);
-      navigation.navigate('TripDetails', { trip });
+      navigation.navigate('TripDetails', { tripId: trip.id });
     }
   };
 
