@@ -27,7 +27,7 @@ export default function AddMemberScreen({ route, navigation }) {
 
     await addMember(tripId, { name: name.trim(), email: email.trim() });
 
-    // Safe navigation: avoid “GO_BACK not handled”
+    
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
