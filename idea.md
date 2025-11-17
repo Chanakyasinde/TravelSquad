@@ -19,20 +19,17 @@ Group trips are often disorganized. Plans are shared across WhatsApp, Google Doc
 ## Proposed Solution
 
 TravelSquad streamlines trip planning by offering collaborative features in one platform:
-- Invite friends to trips
 - Build a shared itinerary
 - Split and track expenses
-- Communicate via in-app chat
 - Get reminders and notifications
 
 ---
 
 ## Key Features
 
--  **Create/Join Trips** – Invite members via code or link  
+-  **Create Trips** – Create new trips 
 -  **Itinerary Builder** – Add events with date, time, and location  
 -  **Expense Tracker** – Split expenses evenly or custom, with debt tracking  
--  **Group Chat** – Discuss plans within the app  
 -  **Push Notifications** – Alerts for itinerary updates or pending payments  
 -  **Trip Summary** – Overview of total expenses, activities, and members
 
@@ -55,7 +52,6 @@ TravelSquad streamlines trip planning by offering collaborative features in one 
 | **Backend**   | Node.js + Express                           |
 | **Database**  | MySQL                                       |
 | **Auth**      | Google OAuth / Firebase Auth                |
-| **Real-time** | Socket.io                                   |
 | **Notifications** | Expo Push Notifications                 |
 
 ---
