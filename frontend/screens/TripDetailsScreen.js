@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Button, Share, StyleSheet, Alert } from 'react-native';
+import { View, Text, Button, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useContext, useEffect } from 'react';
@@ -22,17 +22,7 @@ export default function TripDetailsScreen({ route }) {
     }
   }, [currentTrip, navigation]);
 
-  const inviteCode = `TRIP-${String(tripId)}`;
 
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Join my trip "${currentTrip?.name}" on TravelSquad! Use invite code: ${inviteCode}`,
-      });
-    } catch (error) {
-      Alert.alert(error.message);
-    }
-  };
 
   const confirmDelete = () => {
     Alert.alert('Delete Trip', `Delete "${currentTrip?.name}"? This cannot be undone.`, [
@@ -56,17 +46,12 @@ export default function TripDetailsScreen({ route }) {
 
         <View style={styles.separator} />
 
-        <Text style={styles.inviteLabel}>Invite Code</Text>
-        <Text style={styles.inviteCode}>{inviteCode}</Text>
-
         <View style={styles.buttonContainer}>
-          <Button title="Share" onPress={handleShare} />
-          <View style={{ height: 10 }} />
-          <Button title="Edit Trip" onPress={() => navigation.navigate('EditTrip', { tripId })} />
-          <View style={{ height: 10 }} />
+
           <Button title="Add Members" onPress={() => navigation.navigate('AddMember', { tripId })} />
           <View style={{ height: 10 }} />
           <Button color="#dc3545" title="Delete Trip" onPress={confirmDelete} />
+        
         </View>
       </View>
     </SafeAreaView>
@@ -94,16 +79,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#e9ecef',
     marginVertical: 24,
-  },
-  inviteLabel: {
-    fontSize: 16,
-    color: '#343a40',
-  },
-  inviteCode: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginTop: 4,
-    color: '#007bff',
   },
   buttonContainer: {
     marginTop: 'auto', 

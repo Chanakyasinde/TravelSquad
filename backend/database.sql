@@ -1,7 +1,6 @@
 DROP TABLE IF EXISTS expense_splits;
 DROP TABLE IF EXISTS expenses;
 DROP TABLE IF EXISTS events;
-DROP TABLE IF EXISTS messages;
 DROP TABLE IF EXISTS trip_members;
 DROP TABLE IF EXISTS trips;
 
@@ -23,15 +22,6 @@ CREATE TABLE trip_members (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE,
   UNIQUE KEY unique_trip_member (trip_id, member_email)
-);
-
-CREATE TABLE messages (
-  message_id INT AUTO_INCREMENT PRIMARY KEY,
-  trip_id INT NOT NULL,
-  sender_email VARCHAR(255) NOT NULL,
-  message_text TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
 );
 
 CREATE TABLE events (
@@ -68,7 +58,6 @@ CREATE TABLE expense_splits (
 );
 
 CREATE INDEX idx_trip_id ON trip_members(trip_id);
-CREATE INDEX idx_trip_id_messages ON messages(trip_id);
 CREATE INDEX idx_trip_id_events ON events(trip_id);
 CREATE INDEX idx_trip_id_expenses ON expenses(trip_id);
 CREATE INDEX idx_expense_id ON expense_splits(expense_id);

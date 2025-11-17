@@ -26,10 +26,6 @@ export default function MyTrips({ navigation }) {
             title="+ Add Trip"
             onPress={() => navigation.navigate('CreateTrip')}
           />
-          <Button
-            title="Join Trip"
-            onPress={() => navigation.navigate('JoinTrip')}
-          />
         </View>
       </View>
       <FlatList
