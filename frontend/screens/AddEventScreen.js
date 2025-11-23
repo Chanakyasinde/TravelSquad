@@ -1,8 +1,13 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { TripContext } from '../contexts/TripContext';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import dayjs from 'dayjs';
+import Screen from '../components/ui/Screen';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
+import { Title, Body } from '../components/ui/Typography';
+import { theme } from '../theme/theme';
 
 export default function AddEventScreen({ route, navigation }) {
   const { tripId } = route.params;
@@ -34,64 +39,83 @@ export default function AddEventScreen({ route, navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Event Title</Text>
-      <TextInput style={styles.input} placeholder="e.g., Dinner at Le Jules Verne" value={title} onChangeText={setTitle} />
-      
-      <Text style={styles.label}>Location</Text>
-      <TextInput style={styles.input} placeholder="Eiffel Tower, Paris" value={location} onChangeText={setLocation} />
+    <Screen style={styles.container}>
+      <View style={styles.content}>
+        <Title style={styles.title}>Add New Event</Title>
 
-      <Text style={styles.label}>Date & Time</Text>
-      <TouchableOpacity onPress={() => setPickerVisible(true)} style={styles.input}>
-        <Text style={dateTime ? styles.dateText : styles.placeholderText}>
-          {dateTime ? dayjs(dateTime).format('MMMM D, YYYY h:mm A') : 'Select Date & Time'}
-        </Text>
-      </TouchableOpacity>
-      
-      <DateTimePickerModal
-        isVisible={isPickerVisible}
-        mode="datetime"
-        onConfirm={handleConfirm}
-        onCancel={() => setPickerVisible(false)}
-      />
+        <Input
+          label="Event Title"
+          placeholder="e.g., Dinner at Le Jules Verne"
+          value={title}
+          onChangeText={setTitle}
+        />
 
-      <View style={styles.buttonContainer}>
-        <Button title="Save Event" onPress={handleAddEvent} />
+        <Input
+          label="Location"
+          placeholder="Eiffel Tower, Paris"
+          value={location}
+          onChangeText={setLocation}
+        />
+
+        <View style={styles.dateInputWrapper}>
+          <Body style={styles.label}>Date & Time</Body>
+          <TouchableOpacity onPress={() => setPickerVisible(true)} style={styles.dateInput}>
+            <Body style={dateTime ? styles.dateText : styles.placeholderText}>
+              {dateTime ? dayjs(dateTime).format('MMMM D, YYYY h:mm A') : 'Select Date & Time'}
+            </Body>
+          </TouchableOpacity>
+        </View>
+
+        <DateTimePickerModal
+          isVisible={isPickerVisible}
+          mode="datetime"
+          onConfirm={handleConfirm}
+          onCancel={() => setPickerVisible(false)}
+        />
+
+        <View style={styles.buttonContainer}>
+          <Button title="Save Event" onPress={handleAddEvent} />
+        </View>
       </View>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-    container: { 
-      flex: 1, 
-      padding: 20, 
-      backgroundColor: '#fff' 
-    },
-    label: { 
-      fontSize: 16, 
-      fontWeight: '500', 
-      marginBottom: 8 
-    },
-    input: { 
-      borderWidth: 1, 
-      borderColor: '#ccc', 
-      padding: 12, 
-      borderRadius: 8, 
-      marginBottom: 20, 
-      justifyContent: 'center',
-      fontSize: 16,
-    },
-    placeholderText: {
-      color: '#aaa',
-      fontSize: 16,
-    },
-    dateText: {
-      color: '#000',
-      fontSize: 16,
-    },
-    buttonContainer: {
-      marginTop: 'auto',
-      paddingBottom: 20,
-    }
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: theme.spacing.l,
+    flex: 1,
+  },
+  title: {
+    marginBottom: theme.spacing.xl,
+  },
+  label: {
+    marginBottom: theme.spacing.xs,
+    fontWeight: '600',
+  },
+  dateInputWrapper: {
+    marginBottom: theme.spacing.m,
+  },
+  dateInput: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    paddingHorizontal: theme.spacing.m,
+    paddingVertical: 12,
+    borderRadius: theme.borderRadius.m,
+    justifyContent: 'center',
+    height: 50,
+  },
+  placeholderText: {
+    color: theme.colors.text.secondary,
+  },
+  dateText: {
+    color: theme.colors.text.primary,
+  },
+  buttonContainer: {
+    marginTop: 'auto',
+  },
 });

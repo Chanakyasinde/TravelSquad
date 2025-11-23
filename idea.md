@@ -6,7 +6,7 @@
 
 ##  Project Overview
 
-**TravelSquad** is a mobile-first fullstack application designed to simplify group travel planning. It allows users to create trips, build shared itineraries, split expenses, chat with group members, and get real-time updates — all in one app. Perfect for friends, family, or roommates planning vacations or weekend getaways.
+**TravelSquad** is a mobile-first fullstack application designed to simplify group travel planning. It allows users to create trips, build shared itineraries, split expenses and get real-time updates — all in one app. Perfect for friends, family, or roommates planning vacations or weekend getaways.
 
 ---
 

@@ -1,12 +1,18 @@
 import React, { useContext, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Button } from 'react-native';
+import { View, StyleSheet, FlatList } from 'react-native';
 import { TripContext } from '../contexts/TripContext';
 import { useNavigation } from '@react-navigation/native';
 import dayjs from 'dayjs';
+import Screen from '../components/ui/Screen';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import { Title, Subtitle, Body, Caption } from '../components/ui/Typography';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function TripItineraryScreen({ route }) {
   const { tripId } = route.params;
   const { trips } = useContext(TripContext);
+  const { theme } = useTheme();
   const navigation = useNavigation();
 
   const currentTrip = trips.find(t => t.id === tripId);
@@ -24,17 +30,37 @@ export default function TripItineraryScreen({ route }) {
   );
 
   const renderEvent = ({ item }) => (
-    <View style={styles.eventItem}>
-      <Text style={styles.eventTime}>{dayjs(item.dateTime || item.start_time).format('h:mm A')}</Text>
-      <View style={styles.eventDetails}>
-        <Text style={styles.eventTitle}>{item.title}</Text>
-        <Text style={styles.eventLocation}>{item.location}</Text>
+    <Card style={[styles.eventItem, { marginBottom: theme.spacing.m }]}>
+      <View style={[styles.timeContainer, {
+        borderRightColor: theme.colors.border,
+        paddingRight: theme.spacing.s,
+        marginRight: theme.spacing.m
+      }]}>
+        <Subtitle style={[styles.eventTime, { color: theme.colors.primary }]}>{dayjs(item.dateTime || item.start_time).format('h:mm A')}</Subtitle>
+        <Caption>{dayjs(item.dateTime || item.start_time).format('MMM D')}</Caption>
       </View>
-    </View>
+      <View style={styles.eventDetails}>
+        <Body style={styles.eventTitle}>{item.title}</Body>
+        <Caption style={[styles.eventLocation, { color: theme.colors.text.secondary }]}>{item.location}</Caption>
+      </View>
+    </Card>
   );
 
   return (
-    <View style={styles.container}>
+    <Screen style={styles.container}>
+      <View style={[styles.header, {
+        paddingHorizontal: theme.spacing.l,
+        paddingVertical: theme.spacing.m,
+        backgroundColor: theme.colors.surface,
+        borderBottomColor: theme.colors.border
+      }]}>
+        <Title>Itinerary</Title>
+        <Button
+          title="+ Add Event"
+          onPress={() => currentTrip && navigation.navigate('AddEvent', { tripId })}
+          style={[styles.addButton, { paddingVertical: theme.spacing.s, paddingHorizontal: theme.spacing.m }]}
+        />
+      </View>
       <FlatList
         data={sortedEvents}
         renderItem={renderEvent}
@@ -43,44 +69,51 @@ export default function TripItineraryScreen({ route }) {
           if (key !== undefined && key !== null) return String(key);
           return `${item.title}-${item.dateTime || item.start_time || Math.random().toString(36).slice(2)}`;
         }}
-        ListEmptyComponent={<Text style={styles.emptyText}>No events planned yet.</Text>}
+        ListEmptyComponent={<Body style={[styles.emptyText, { color: theme.colors.text.secondary }]}>No events planned yet.</Body>}
+        contentContainerStyle={[styles.list, { padding: theme.spacing.m }]}
+        showsVerticalScrollIndicator={false}
       />
-      <View style={styles.buttonContainer}>
-        <Button 
-          title="+ Add Event" 
-          onPress={() => currentTrip && navigation.navigate('AddEvent', { tripId })} 
-        />
-      </View>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
-  eventItem: { 
-    flexDirection: 'row', 
-    backgroundColor: '#fff',
-    padding: 15, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#e0e0e0' 
+  container: {
+    flex: 1,
   },
-  eventTime: { 
-    width: 80, 
-    fontSize: 16, 
-    fontWeight: 'bold', 
-    color: '#007bff' 
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
   },
-  eventDetails: { flex: 1 },
-  eventTitle: { fontSize: 18, fontWeight: '600' },
-  eventLocation: { fontSize: 14, color: 'gray', marginTop: 4 },
-  emptyText: { 
-    textAlign: 'center', 
-    marginTop: 50, 
-    fontSize: 16, 
-    color: 'gray' 
+  addButton: {
   },
-  buttonContainer: { 
-    padding: 20,
-    backgroundColor: '#f8f9fa' 
+  list: {
+  },
+  eventItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timeContainer: {
+    width: 80,
+    alignItems: 'center',
+    borderRightWidth: 1,
+  },
+  eventTime: {
+    marginBottom: 0,
+  },
+  eventDetails: {
+    flex: 1,
+  },
+  eventTitle: {
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  eventLocation: {
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 50,
   },
 });
