@@ -1,10 +1,17 @@
 import React from 'react';
-import { View, Text, Button, StyleSheet, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, StyleSheet, Alert, Switch } from 'react-native';
 import { signOut } from 'firebase/auth';
-import { auth } from '../firebaseConfig'; 
+import { auth } from '../firebaseConfig';
+import Screen from './ui/Screen';
+import Card from './ui/Card';
+import Button from './ui/Button';
+import { Title, Subtitle, Body, Caption } from './ui/Typography';
+import { useTheme } from '../contexts/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
+
 export default function Profile() {
   const user = auth.currentUser;
+  const { theme, isDarkMode, toggleTheme } = useTheme();
 
   const handleLogout = () => {
     signOut(auth)
@@ -14,56 +21,100 @@ export default function Profile() {
       .catch(error => Alert.alert('Logout Error', error.message));
   };
 
+  const getInitials = (email) => {
+    if (!email) return '?';
+    return email.charAt(0).toUpperCase();
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Profile</Text>
-      
-      <View style={styles.infoContainer}>
-        <Text style={styles.label}>Logged in as:</Text>
-        <Text style={styles.email}>{user ? user.email : 'Loading...'}</Text>
+    <Screen style={styles.container}>
+      <View style={[styles.content, { padding: theme.spacing.l }]}>
+        <Title style={[styles.pageTitle, { marginBottom: theme.spacing.xl }]}>Profile</Title>
+
+        <Card style={[styles.profileCard, { paddingVertical: theme.spacing.xl, marginBottom: theme.spacing.xl }]}>
+          <View style={[styles.avatarContainer, { marginBottom: theme.spacing.m }]}>
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.secondary]}
+              style={styles.avatar}
+            >
+              <Title style={styles.avatarText}>{getInitials(user?.email)}</Title>
+            </LinearGradient>
+          </View>
+
+          <View style={styles.infoContainer}>
+            <Caption>Logged in as</Caption>
+            <Subtitle style={{ marginTop: theme.spacing.xs }}>{user ? user.email : 'Loading...'}</Subtitle>
+          </View>
+        </Card>
+
+        <Card style={[styles.settingCard, { marginBottom: theme.spacing.l }]}>
+          <View style={styles.settingRow}>
+            <Body>Dark Mode</Body>
+            <Switch
+              value={isDarkMode}
+              onValueChange={toggleTheme}
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+              thumbColor={theme.colors.surface}
+            />
+          </View>
+        </Card>
+
+        <View style={styles.actions}>
+          <Button
+            title="Logout"
+            onPress={handleLogout}
+            variant="outline"
+            style={{ borderColor: theme.colors.error }}
+          />
+        </View>
       </View>
-      
-      <View style={styles.buttonContainer}>
-        <Button title="Logout" color="#dc3545" onPress={handleLogout} />
-      </View>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
   },
-  title: {
+  content: {
+    flex: 1,
+  },
+  pageTitle: {
+  },
+  profileCard: {
+    alignItems: 'center',
+  },
+  avatarContainer: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: '#FFFFFF',
     fontSize: 32,
-    fontWeight: 'bold',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+    marginBottom: 0,
   },
   infoContainer: {
-    backgroundColor: '#fff',
-    padding: 20,
-    marginHorizontal: 20,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    alignItems: 'center',
   },
-  label: {
-    fontSize: 16,
-    color: 'gray',
+  settingCard: {
+    paddingVertical: 12,
   },
-  email: {
-    fontSize: 18,
-    fontWeight: '500',
-    marginTop: 4,
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  buttonContainer: {
-    marginTop: 'auto', 
-    padding: 20,
+  actions: {
+    marginTop: 'auto',
   },
 });

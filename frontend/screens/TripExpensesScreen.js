@@ -1,11 +1,17 @@
 import React, { useContext, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Button } from 'react-native';
+import { View, StyleSheet, FlatList } from 'react-native';
 import { TripContext } from '../contexts/TripContext';
 import { useNavigation } from '@react-navigation/native';
+import Screen from '../components/ui/Screen';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import { Title, Subtitle, Body, Caption } from '../components/ui/Typography';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function TripExpensesScreen({ route }) {
   const { tripId } = route.params;
   const { trips } = useContext(TripContext);
+  const { theme } = useTheme();
   const navigation = useNavigation();
 
   const currentTrip = trips.find(t => t.id === tripId);
@@ -68,9 +74,9 @@ export default function TripExpensesScreen({ route }) {
 
   if (!currentTrip) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.emptyText}>This trip was removed.</Text>
-      </View>
+      <Screen style={styles.container}>
+        <Body style={[styles.emptyText, { color: theme.colors.text.secondary }]}>This trip was removed.</Body>
+      </Screen>
     );
   }
 
@@ -78,61 +84,112 @@ export default function TripExpensesScreen({ route }) {
     const paidByVal = item.paidBy ?? item.paid_by;
     const paidByMember = memberList.find(m => getMemberKey(m) === paidByVal);
     return (
-      <View style={styles.expenseItem}>
-        <View>
-          <Text style={styles.expenseDescription}>{item.description}</Text>
-          <Text style={styles.paidByText}>Paid by {paidByMember?.member_name ?? paidByMember?.name ?? 'Unknown'}</Text>
+      <Card style={[styles.expenseItem, { marginBottom: theme.spacing.m }]}>
+        <View style={styles.expenseInfo}>
+          <Body style={styles.expenseDescription}>{item.description}</Body>
+          <Caption style={styles.paidByText}>Paid by {paidByMember?.member_name ?? paidByMember?.name ?? 'Unknown'}</Caption>
         </View>
-        <Text style={styles.expenseAmount}>${(parseFloat(item.amount) || 0).toFixed(2)}</Text>
-      </View>
+        <Subtitle style={[styles.expenseAmount, { color: theme.colors.primary }]}>₹{(parseFloat(item.amount) || 0).toFixed(2)}</Subtitle>
+      </Card>
     );
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.summaryContainer}>
-        <Text style={styles.summaryTitle}>Debt Summary</Text>
+    <Screen style={styles.container}>
+      <View style={[
+        styles.summaryContainer,
+        {
+          padding: theme.spacing.l,
+          backgroundColor: theme.colors.surface,
+          marginBottom: theme.spacing.m,
+          borderBottomColor: theme.colors.border
+        }
+      ]}>
+        <Title style={[styles.summaryTitle, { marginBottom: theme.spacing.m }]}>Debt Summary</Title>
         {balances.map((item, index) => (
           <View key={`${item.name}-${index}`} style={styles.balanceRow}>
-            <Text style={styles.balanceName}>{item.name}</Text>
-            <Text style={[styles.balanceAmount, item.balance < 0 ? styles.owesMoney : styles.owedMoney]}>
-              {item.balance >= 0 ? `Is owed ${item.balance.toFixed(2)}` : `Owes ${(-item.balance).toFixed(2)}`}
-            </Text>
+            <Body style={[styles.balanceName, { color: theme.colors.text.primary }]}>{item.name}</Body>
+            <Body style={[
+              styles.balanceAmount,
+              item.balance < 0 ? { color: theme.colors.error } : { color: theme.colors.success }
+            ]}>
+              {item.balance >= 0 ? `Is owed ₹${item.balance.toFixed(2)}` : `Owes ₹${(-item.balance).toFixed(2)}`}
+            </Body>
           </View>
         ))}
       </View>
-      
-      <Text style={styles.listHeader}>All Transactions</Text>
+
+      <View style={[styles.listHeaderContainer, { paddingHorizontal: theme.spacing.l, marginBottom: theme.spacing.s }]}>
+        <Subtitle style={styles.listHeader}>All Transactions</Subtitle>
+        <Button
+          title="+ Add"
+          onPress={() => navigation.navigate('AddExpense', { tripId })}
+          style={[styles.addButton, { paddingVertical: theme.spacing.s, paddingHorizontal: theme.spacing.m }]}
+        />
+      </View>
+
       <FlatList
         data={expenseList}
         renderItem={renderExpense}
         keyExtractor={(item) => item.id ? String(item.id) : Math.random().toString()}
-        ListEmptyComponent={<Text style={styles.emptyText}>No expenses recorded yet.</Text>}
+        ListEmptyComponent={<Body style={[styles.emptyText, { color: theme.colors.text.secondary }]}>No expenses recorded yet.</Body>}
+        contentContainerStyle={[styles.list, { padding: theme.spacing.m }]}
+        showsVerticalScrollIndicator={false}
       />
-      <View style={styles.buttonContainer}>
-        <Button 
-          title="+ Add Expense" 
-          onPress={() => navigation.navigate('AddExpense', { tripId })} 
-        />
-      </View>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f5' },
-  summaryContainer: { padding: 20, backgroundColor: '#fff', marginBottom: 10 },
-  summaryTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  balanceRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
-  balanceName: { fontSize: 16 },
-  balanceAmount: { fontSize: 16, fontWeight: '500' },
-  owesMoney: { color: '#dc3545' },
-  owedMoney: { color: '#28a745' },
-  listHeader: { fontSize: 18, fontWeight: 'bold', paddingHorizontal: 20, paddingBottom: 10 },
-  expenseItem: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e9ecef' },
-  expenseDescription: { fontSize: 16 },
-  paidByText: { fontSize: 12, color: 'gray', marginTop: 4 },
-  expenseAmount: { fontSize: 16, fontWeight: '600' },
-  emptyText: { textAlign: 'center', marginTop: 30, fontSize: 16, color: 'gray' },
-  buttonContainer: { padding: 20, backgroundColor: '#f0f2f5' },
+  container: {
+    flex: 1,
+  },
+  summaryContainer: {
+    borderBottomWidth: 1,
+  },
+  summaryTitle: {
+  },
+  balanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4
+  },
+  balanceName: {
+  },
+  balanceAmount: {
+    fontWeight: '600',
+  },
+  listHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  listHeader: {
+    marginBottom: 0,
+  },
+  addButton: {
+  },
+  list: {
+  },
+  expenseItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  expenseInfo: {
+    flex: 1,
+  },
+  expenseDescription: {
+    fontWeight: '600',
+  },
+  paidByText: {
+    marginTop: 4,
+  },
+  expenseAmount: {
+    marginBottom: 0,
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 30,
+  },
 });

@@ -3,6 +3,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useTheme } from '../contexts/ThemeContext';
 
 import MyTrips from '../components/MyTrips';
 import Profile from '../components/Profile';
@@ -23,8 +24,18 @@ const TopTab = createMaterialTopTabNavigator();
 
 function TripTopTabNavigator({ route }) {
   const { tripId } = route.params;
+  const { theme } = useTheme();
+
   return (
-    <TopTab.Navigator>
+    <TopTab.Navigator
+      screenOptions={{
+        tabBarStyle: { backgroundColor: theme.colors.surface },
+        tabBarLabelStyle: { fontWeight: '600' },
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.text.secondary,
+        tabBarIndicatorStyle: { backgroundColor: theme.colors.primary },
+      }}
+    >
       <TopTab.Screen name="Details" component={TripDetailsScreen} initialParams={{ tripId }} />
       <TopTab.Screen name="Itinerary" component={TripItineraryScreen} initialParams={{ tripId }} />
       <TopTab.Screen name="Expenses" component={TripExpensesScreen} initialParams={{ tripId }} />
@@ -33,6 +44,8 @@ function TripTopTabNavigator({ route }) {
 }
 
 function BottomTabNavigator() {
+  const { theme } = useTheme();
+
   return (
     <BottomTab.Navigator
       screenOptions={({ route }) => ({
@@ -43,8 +56,12 @@ function BottomTabNavigator() {
           else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#007AFF',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.text.secondary,
+        tabBarStyle: {
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.border,
+        },
       })}
     >
       <BottomTab.Screen name="MyTrips" component={MyTrips} options={{ title: 'My Trips' }} />
@@ -54,8 +71,21 @@ function BottomTabNavigator() {
 }
 
 export default function StackNavigator() {
+  const { theme } = useTheme();
+
+  const screenOptions = {
+    headerStyle: {
+      backgroundColor: theme.colors.surface,
+    },
+    headerTintColor: theme.colors.text.primary,
+    headerTitleStyle: {
+      fontWeight: '600',
+    },
+    cardStyle: { backgroundColor: theme.colors.background },
+  };
+
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen name="MainTabs" component={BottomTabNavigator} options={{ headerShown: false }} />
       <Stack.Screen name="CreateTrip" component={CreateTripScreen} options={{ headerShown: true, title: 'Create Trip' }} />
       <Stack.Screen
