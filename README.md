@@ -4,17 +4,17 @@
 
 ```
 TravelSquad/
-├── backend/                # Express.js API
-│   ├── database.sql        # Database schema
-│   ├── index.js            # Main server file
+├── backend/                
+│   ├── database.sql        
+│   ├── index.js           
 │   └── package.json
-├── frontend/               # React Native Expo project
-│   ├── components/         # Reusable UI components
-│   ├── screens/            # App screens
-│   ├── navigation/         # Navigation configuration
+├── frontend/               
+│   ├── components/         
+│   ├── screens/            
+│   ├── navigation/         
 │   └── package.json
-├── idea.md                 # Project Idea and Overview
-└── README.md               # Project documentation
+├── idea.md                 
+└── README.md              
 ```
 
 ---
