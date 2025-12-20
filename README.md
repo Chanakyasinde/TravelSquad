@@ -18,7 +18,6 @@
 -  **Trip Summary** – Overview of total expenses, activities, and members
 
 ---
-
 ##  Tech Stack
 
 | Layer         | Tools & Libraries                          |
@@ -29,7 +28,6 @@
 | **Auth**      | Firebase Auth                               |
 
 ---
-
 ## Project Structure
 
 ```
