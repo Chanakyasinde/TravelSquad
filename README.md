@@ -1,5 +1,35 @@
 # TravelSquad – Group Trip Planner & Expense Manager
 
+<p align="center">
+  <a href="https://drive.google.com/file/d/1MEKO_N2iFQvjRU6UcvQLiSOYN8rZKhqo/view?usp=sharing"><b>Watch Demo Video</b></a>
+</p>
+
+##  Project Overview
+
+**TravelSquad** is a mobile-first fullstack application designed to simplify group travel planning. It allows users to create trips, build shared itineraries, split expenses and get real-time updates — all in one app. Perfect for friends, family, or roommates planning vacations or weekend getaways.
+
+---
+
+## Key Features
+
+-  **Create Trips** – Create new trips 
+-  **Itinerary Builder** – Add events with date, time, and location  
+-  **Expense Tracker** – Split expenses evenly or custom, with debt tracking  
+-  **Trip Summary** – Overview of total expenses, activities, and members
+
+---
+
+##  Tech Stack
+
+| Layer         | Tools & Libraries                          |
+|---------------|---------------------------------------------|
+| **Frontend**  | React Native (Expo)                         |
+| **Backend**   | Node.js + Express                           |
+| **Database**  | MySQL                                       |
+| **Auth**      | Firebase Auth                               |
+
+---
+
 ## Project Structure
 
 ```
